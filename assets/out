@@ -54,8 +54,6 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
     name=$(eval echo $name)
     desc=$(echo "$build"| jq -r '.description')
     desc=$(eval echo $desc)
-    build_url=$(echo "$build"| jq -r '.url')
-    build_url=$(eval echo $build_url)
     json=`echo "${build}" | jq --arg build_url "${build_url}" --arg id "${BUILD_ID}" --arg name "$name" --arg desc "$desc" '{
         state: .state,
         key: ($name + "-" + $id),
