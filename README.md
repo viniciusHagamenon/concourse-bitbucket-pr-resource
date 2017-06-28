@@ -1,4 +1,4 @@
-# concourse-git-bitbucket-pr-resource
+# concourse-bitbucket-pr-resource
 
 Tracks changes for all *git* branches for pull requests.
 
@@ -16,7 +16,7 @@ Add the following `resource_types` entry to your pipeline:
 resource_types:
 - name: git-bitbucket-pr
   type: docker-image
-  source: {repository: zarplata/concourse-git-bitbucket-pr}
+  source: {repository: viniciushagamenon/concourse-bitbucket-pr-resource}
 ```
 
 ## Source Configuration
@@ -38,17 +38,50 @@ from the original resource is ignored.
 
 ``` yaml
 resources:
-- name: my-repo-with-pull-requests
+- name: my-repo-with-pr
   type: git-bitbucket-pr
   source:
-    url: http://bitbucket.local
+    bitbucket_type: cloud
+    url: https://bitbucket.org
     username: some-username
     password: some-password
-    project: zarplata
-    repository: concourse-git-bitbucket-pr-resource
+    project: viniciusHagamenon
+    repository: concourse-bitbucket-pr-resource
     git:
-      uri: https://github.com/zarplata/concourse-git-bitbucket-pr-resource
-      private_key: {{git-repo-key}}
+      uri: https://github.com/viniciusHagamenon/concourse-bitbucket-pr-resource
+      private_key: ((git-repo-key))
+
+jobs:
+  - name: unit
+    plan:
+      - get: my-repo-with-pr
+        trigger: true
+        version: every
+
+      # update pr with build status - INPROGRESS
+      - put: my-repo-with-pr
+        params:
+          name: My CI                 # name of the build displayed at the pr on bitbucket
+          description: CI unit tests  # description of the build displayed at the pr on bitbucket
+          state: INPROGRESS           # bitbucket build state - [INPROGRESS, SUCCESSFUL, FAILED]
+
+      - task: unit-test
+        file: my-repo-with-pr/ci/unit.yml # your task file
+
+        on_success: # update pr with build status - SUCCESSFUL
+          put: my-repo-with-pr
+          params:
+            name: My CI
+            description: CI unit tests
+            state: SUCCESSFUL
+
+        on_failure: # update pr with build status - FAILED
+          put: my-repo-with-pr
+          params:
+            params:
+            name: My CI
+            description: CI unit tests
+            state: FAILED
 ```
 
 ## Behavior
@@ -69,6 +102,6 @@ commit on the branch.
 All `params` and `source` configuration of the original resource will be
 respected.
 
-### `out`: No-op.
+### `out`: Update build task status.
 
-*Not implemented.*
+This updates the build status of the task.
